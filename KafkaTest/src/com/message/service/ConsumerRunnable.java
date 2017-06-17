@@ -4,6 +4,13 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 
+import com.pay.dto.TradinfoDto;
+import com.pay.service.ToPayAndUpdateAccSrv;
+import com.pay.service.impl.ToPayAndUpdateAccSrvImpl;
+
+import net.sf.json.JSONObject;
+
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Properties;
 
@@ -28,12 +35,24 @@ public class ConsumerRunnable implements Runnable {
 	@Override
 	public void run() {
 		while (true) {
-			ConsumerRecords<String, String> records = consumer.poll(200); // 本例使用200ms作为获取超时时间
+			ConsumerRecords<String, String> records = consumer.poll(20000); // 本例使用200ms作为获取超时时间
+		
+			ArrayList tradlist = new ArrayList();
+
 			for (ConsumerRecord<String, String> record : records) {
-				// 这里面写处理消息的逻辑，本例中只是简单地打印消息
+				JSONObject jsonobj = JSONObject.fromObject(record.value());
+
+				TradinfoDto traddto = (TradinfoDto) JSONObject.toBean(jsonobj, TradinfoDto.class);
+				tradlist.add(traddto);
 				System.out.println(Thread.currentThread().getName() + " consumed " + record.partition()
-						+ "th message with offset: " + record.offset());
+				+ "th patition message with offset: " + record.offset() + " :" + traddto.getId() + " ,"
+				+ traddto.getTradCus());
+
 			}
+
+			ToPayAndUpdateAccSrv savepay = new ToPayAndUpdateAccSrvImpl();
+			savepay.ToPayAndUpdateAccSrv(tradlist);
+			
 		}
 	}
 }
